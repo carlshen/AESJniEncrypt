@@ -2,6 +2,8 @@
 
 [中文](https://github.com/BruceWind/AESJniEncrypt/blob/master/README_zh.md)
 
+感谢原作者，仅用来学习。
+
 # 追求极致的代码安全性保障 
 - [x] ndk实现AES加密
 - [x] 使用JniOnload 隐藏c函数

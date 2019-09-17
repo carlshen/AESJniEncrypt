@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.4.1)           #普通版本的clang
 
+# configure import libs
+set(distribution_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../distribution)
+
+add_library(lib_tongfang SHARED IMPORTED)
+set_target_properties(lib_tongfang PROPERTIES IMPORTED_LOCATION
+    ${distribution_DIR}/tongfang/lib/${ANDROID_ABI}/libTongfang.so)
 
 add_library( # Sets the name of the library.
              JNIEncrypt
@@ -33,8 +39,11 @@ find_library( # Sets the name of the path variable.
 
 # 指定CMake应链接到目标库的库。 您可以链接多个库，例如在此构建脚本中定义的库，预构建的第三方库或系统库。
 
+target_include_directories(JNIEncrypt PRIVATE
+                           ${distribution_DIR}/tongfang/include)
+
 target_link_libraries( # Specifies the target library.
                        JNIEncrypt
-
+                       lib_tongfang
                        # included in the NDK.
                        ${log-lib} )

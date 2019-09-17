@@ -4,6 +4,9 @@
 #include "check_emulator.h"
 #include <string.h>
 #include <sys/ptrace.h>
+#include <SDSCErr.h>
+#include <SDSCDev.h>
+
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
@@ -96,6 +99,12 @@ JNIEXPORT jstring JNICALL decode(JNIEnv *env, jobject instance, jobject context,
         return charToJstring(env,str);
     }
 
+    // set package name
+//    char *pkgname = (*env)->GetStringUTFChars(env, "com.androidyuan.aesjniencrypt", JNI_FALSE);
+//    LOGI("calculation time: %s", pkgname);
+    LOGI("calculation: %s\n","com.androidyuan.aesjniencrypt");
+    unsigned long pkgresult = SDSCSetPackageName("com.androidyuan.aesjniencrypt");
+    LOGI("calculation time: %ld", pkgresult);
     uint8_t *AES_KEY = (uint8_t *) getKey();
     const char *str = (*env)->GetStringUTFChars(env, str_, JNI_FALSE);
     char *desResult = AES_128_ECB_PKCS5Padding_Decrypt(str, AES_KEY);

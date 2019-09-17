@@ -3,12 +3,9 @@
 //
 
 #include "debugger.h"
-#include <stdio.h>
-#include "string.h"
-#include "logger.h"
 
 
- int isdebug(){
+int isdebug(){
 
 #ifdef NDK_DEBUG //android.mk 编译情况下
      LOGI("is NDK_DEBUG. \n");

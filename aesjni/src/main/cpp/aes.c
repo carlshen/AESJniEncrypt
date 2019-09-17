@@ -34,7 +34,9 @@ NOTE:   String length must be evenly divisible by 16byte (str_len % 16 == 0)
 /* Includes:                                                                 */
 /*****************************************************************************/
 
+#include <string.h>
 #include "aes.h"
+#include "logger.h"
 
 
 /*****************************************************************************/
@@ -564,7 +566,7 @@ char * AES_128_ECB_PKCS5Padding_Decrypt(const char *in, const uint8_t* key)
     //去除结尾垃圾字符串 end
 
 
-    //LOGE("解密结果:");
+    LOGE("解密结果:");
     //LOGE(out);
     free(inputDesBase64);
     return (char *) out;

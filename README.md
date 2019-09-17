@@ -2,6 +2,8 @@
 
 [中文](https://github.com/BruceWind/AESJniEncrypt/blob/master/README_zh.md)
 
+Thanks for author.
+I just learn from it.
 
 # Reach high security in Android
 - [x] Add AES algorithms to native code

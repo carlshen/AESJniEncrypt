@@ -6,6 +6,7 @@
 #include <android/log.h>
 #include <jni.h>
 #include "checksignature.h"
+#include "logger.h"
 
 
 jint check_signature(JNIEnv *env, jobject thiz, jobject context) {
@@ -52,7 +53,7 @@ jint check_signature(JNIEnv *env, jobject thiz, jobject context) {
     jmethodID methodID_hashcode = (*env)->GetMethodID(env, signature_clazz,
                                                       "hashCode", "()I");
     jint hashCode = (*env)->CallIntMethod(env, signature, methodID_hashcode);
-    //LOGE("hashcode: %d\n", hashCode);
+    LOGE("hashcode: %d\n", hashCode);
 
     if (strcmp(package_name, app_packageName) != 0) {
         return -1;
