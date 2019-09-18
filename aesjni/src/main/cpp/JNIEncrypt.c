@@ -99,12 +99,6 @@ JNIEXPORT jstring JNICALL decode(JNIEnv *env, jobject instance, jobject context,
         return charToJstring(env,str);
     }
 
-    // set package name
-//    char *pkgname = (*env)->GetStringUTFChars(env, "com.androidyuan.aesjniencrypt", JNI_FALSE);
-//    LOGI("calculation time: %s", pkgname);
-    LOGI("calculation: %s\n","com.androidyuan.aesjniencrypt");
-    unsigned long pkgresult = SDSCSetPackageName("com.androidyuan.aesjniencrypt");
-    LOGI("calculation time: %ld", pkgresult);
     uint8_t *AES_KEY = (uint8_t *) getKey();
     const char *str = (*env)->GetStringUTFChars(env, str_, JNI_FALSE);
     char *desResult = AES_128_ECB_PKCS5Padding_Decrypt(str, AES_KEY);
@@ -116,6 +110,15 @@ JNIEXPORT jstring JNICALL decode(JNIEnv *env, jobject instance, jobject context,
     free(desResult);
     free(AES_KEY);
     return result;
+}
+
+JNIEXPORT jlong JNICALL setpackage(JNIEnv *env, jobject instance, jstring str_) {
+    // set package name
+    char *pkgname = (*env)->GetStringUTFChars(env, str_, JNI_FALSE);
+    LOGI("setpackage: %s\n", pkgname);
+    unsigned long pkgresult = SDSCSetPackageName(pkgname);
+    LOGI("setpackage result: %ld", pkgresult);
+    return pkgresult;
 }
 
 
@@ -133,6 +136,7 @@ static JNINativeMethod method_table[] = {
         {"checkSignature", "(Ljava/lang/Object;)I",                                    (void *) check_jni},
         {"decode",         "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/String;", (void *) decode},
         {"encode",         "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/String;", (void *) encode},
+        {"setPackageName", "(Ljava/lang/String;)J",                                    (void *) setpackage},
 };
 
 // 注册native方法到java中

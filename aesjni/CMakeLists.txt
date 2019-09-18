@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.4.1)           #普通版本的clang
 # configure import libs
 set(distribution_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../distribution)
 
-add_library(lib_tongfang SHARED IMPORTED)
+add_library(lib_tongfang STATIC IMPORTED)
 set_target_properties(lib_tongfang PROPERTIES IMPORTED_LOCATION
-    ${distribution_DIR}/tongfang/lib/${ANDROID_ABI}/libTongfang.so)
+    ${distribution_DIR}/tongfang/lib/${ANDROID_ABI}/libTongfang.a)
 
 add_library( # Sets the name of the library.
              JNIEncrypt
