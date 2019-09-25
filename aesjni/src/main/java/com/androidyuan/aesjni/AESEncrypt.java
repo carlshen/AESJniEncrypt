@@ -49,5 +49,20 @@ public class AESEncrypt {
      * @return 1 : pass ， -1 or  -2 : error.
      */
     public static native long setPackageName(String str);
+    public static native long InitParams(long type, String dev);
+    public static native long DestroyParams();
+    public static native String RefreshDev();
+    public static native int ConnectDev(String dev);
+    public static native long DisconnectDev(int handle);
+    public static native long BeginTransaction(int handle);
+    public static native long EndTransaction(int handle);
+    public static native String GetFirmVer(int handle);
+    public static native String GetFlashID(int handle);
+    public static native String ResetCard(int handle);
+    public static native long ResetController(int handle, long control);
+    public static native long TransmitSd(int handle, String command, long mode);
+    public static native long TransmitEx(int handle, String command, long mode);
+    public static native String GetSDKVer();
+    public static native long GetSCIOType(int handle);
 
 }
