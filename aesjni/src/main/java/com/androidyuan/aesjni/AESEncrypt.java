@@ -60,8 +60,8 @@ public class AESEncrypt {
     public static native String GetFlashID(int handle);
     public static native String ResetCard(int handle);
     public static native long ResetController(int handle, long control);
-    public static native long TransmitSd(int handle, String command, long mode);
-    public static native long TransmitEx(int handle, String command, long mode);
+    public static native String TransmitSd(int handle, String command, long mode);
+    public static native String TransmitEx(int handle, String command, long mode);
     public static native String GetSDKVer();
     public static native long GetSCIOType(int handle);
 

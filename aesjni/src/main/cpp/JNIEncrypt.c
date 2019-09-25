@@ -143,7 +143,7 @@ JNIEXPORT jstring JNICALL refresh_dev(JNIEnv *env, jobject instance) {
         return (*env)->NewStringUTF(env, '\0');
     }
     memset(pszDrives, 0x00, SDSC_MAX_DEV_NUM * SDSC_MAX_DEV_NAME_LEN * sizeof(char));
-    unsigned long pulDrivesLen = 0;
+    unsigned long pulDrivesLen = SDSC_MAX_DEV_NUM * SDSC_MAX_DEV_NAME_LEN * sizeof(char);
     unsigned long pulDriveNum = 0;
     unsigned long baseResult = SDSCListDevs(pszDrives, &pulDrivesLen, &pulDriveNum);
     LOGI("RefreshDev result: %ld", baseResult);
@@ -194,8 +194,8 @@ JNIEXPORT jstring JNICALL get_firm_ver(JNIEnv *env, jobject instance, jint handl
         LOGE("get_firm_ver with null alloc.");
         return (*env)->NewStringUTF(env, '\0');
     }
-    memset(firmVer, '\0', SDSC_FIRMWARE_VER_LEN * sizeof(char));
-    unsigned long firmLen = 0;
+    memset(firmVer, 0x00, SDSC_FIRMWARE_VER_LEN * sizeof(char));
+    unsigned long firmLen = SDSC_FIRMWARE_VER_LEN * sizeof(char);
     unsigned long baseResult = SDSCGetFirmwareVer(handle, firmVer, &firmLen);
     LOGI("get_firm_ver baseResult: %ld", baseResult);
     LOGI("get_firm_ver firmLen: %ld", firmLen);
@@ -211,8 +211,8 @@ JNIEXPORT jstring JNICALL get_flash_id(JNIEnv *env, jobject instance, jint handl
         LOGE("get_flash_id with null alloc.");
         return (*env)->NewStringUTF(env, '\0');
     }
-    memset(flashId, '\0', SDSC_FLASH_ID_LEN * sizeof(char));
-    unsigned long flashLen = 0;
+    memset(flashId, 0x00, SDSC_FLASH_ID_LEN * sizeof(char));
+    unsigned long flashLen = SDSC_FLASH_ID_LEN * sizeof(char);
     unsigned long baseResult = SDSCGetFlashID(handle, flashId, &flashLen);
     LOGI("get_flash_id baseResult: %ld", baseResult);
     LOGI("get_flash_id flashLen: %ld", flashLen);
@@ -229,8 +229,8 @@ JNIEXPORT jstring JNICALL reset_card(JNIEnv *env, jobject instance, jint handle)
         LOGE("reset_card with null alloc.");
         return (*env)->NewStringUTF(env, '\0');
     }
-    memset(pbAtr, '\0', SDSC_MAX_DEV_NAME_LEN * sizeof(char));
-    unsigned long pulAtrLen = 0;
+    memset(pbAtr, 0x00, SDSC_MAX_DEV_NAME_LEN * sizeof(char));
+    unsigned long pulAtrLen = SDSC_MAX_DEV_NAME_LEN * sizeof(char);
     unsigned long baseResult = SDSCResetCard(handle, pbAtr, &pulAtrLen);
     LOGI("reset_card baseResult: %ld", baseResult);
     LOGI("reset_card pulAtrLen: %ld", pulAtrLen);
@@ -257,12 +257,16 @@ JNIEXPORT jstring JNICALL transmit(JNIEnv *env, jobject instance, jint handle, j
         LOGE("transmit with null alloc.");
         return (*env)->NewStringUTF(env, '\0');
     }
-    memset(pbOutData, '\0', SDSC_MAX_DEV_NAME_LEN * sizeof(char));
-    unsigned long pulOutDataLen = 0;
+    memset(pbOutData, 0x00, SDSC_MAX_DEV_NAME_LEN * sizeof(char));
+    unsigned long pulOutDataLen = SDSC_MAX_DEV_NAME_LEN * sizeof(char);
     unsigned long pulCosState = 0;
-    unsigned long baseResult = SDSCTransmit(handle, pbCommand, strlen(pbCommand), mode, pbOutData, &pulOutDataLen, &pulCosState);
+    unsigned long ulCommandLen = strlen(pbCommand);
+    LOGI("transmit ulCommandLen: %ld", ulCommandLen);
+    LOGI("transmit pbCommand: %s\n", pbCommand);
+    unsigned long baseResult = SDSCTransmit(handle, pbCommand, ulCommandLen, mode, pbOutData, &pulOutDataLen, &pulCosState);
     LOGI("transmit baseResult: %ld", baseResult);
     LOGI("transmit pulCosState: %ld", pulCosState);
+    LOGI("transmit pbOutData: %s\n", pbOutData);
     jstring  result = charToJstring(env, pbOutData);
     // need free the memory
     free(pbOutData);
@@ -280,8 +284,8 @@ JNIEXPORT jstring JNICALL transmit_ex(JNIEnv *env, jobject instance, jint handle
         LOGE("transmit_ex with null alloc.");
         return (*env)->NewStringUTF(env, '\0');
     }
-    memset(pbOutData, '\0', SDSC_MAX_DEV_NAME_LEN * sizeof(char));
-    unsigned long pulOutDataLen = 0;
+    memset(pbOutData, 0x00, SDSC_MAX_DEV_NAME_LEN * sizeof(char));
+    unsigned long pulOutDataLen = SDSC_MAX_DEV_NAME_LEN * sizeof(char);
     unsigned long baseResult = SDSCTransmitEx(handle, pbCommand, strlen(pbCommand), mode, pbOutData, &pulOutDataLen);
     LOGI("transmit_ex baseResult: %ld", baseResult);
     jstring  result = charToJstring(env, pbOutData);
@@ -296,14 +300,10 @@ JNIEXPORT jstring JNICALL get_sdk_ver(JNIEnv *env, jobject instance) {
         LOGE("get_sdk_ver with null alloc.");
         return (*env)->NewStringUTF(env, '\0');
     }
-    LOGI("get_sdk_ver pszVersion: %s\n", pszVersion);
     memset(pszVersion, 0x00, SDSC_MAX_VERSION_LEN * sizeof(char));
-    LOGI("get_sdk_ver pszVersion: %s\n", pszVersion);
-    unsigned long pulVersionLen = 0;
+    unsigned long pulVersionLen = SDSC_MAX_VERSION_LEN * sizeof(char);
     unsigned long baseResult = SDSCGetSDKVersion(pszVersion, &pulVersionLen);
     LOGI("get_sdk_ver pszVersion: %s\n", pszVersion);
-    strcpy(pszVersion, "12345678");
-    LOGI("------------%s", pszVersion);
     LOGI("get_sdk_ver baseResult: %ld", baseResult);
     LOGI("get_sdk_ver pulVersionLen: %ld", pulVersionLen);
     LOGI("get_sdk_ver pszVersion: %s\n", pszVersion);
@@ -317,7 +317,7 @@ JNIEXPORT jlong JNICALL get_scio_type(JNIEnv *env, jobject instance, jint handle
     unsigned long pulSCIOType = 0;
     unsigned long baseResult = SDSCGetSCIOType(handle, &pulSCIOType);
     LOGI("get_scio_type baseResult: %ld", baseResult);
-    return pulSCIOType;
+    return baseResult;
 }
 
 /**
@@ -332,8 +332,8 @@ check_jni(JNIEnv *env, jobject instance, jobject con) {
 // Java和JNI函数的绑定表
 static JNINativeMethod method_table[] = {
         {"checkSignature", "(Ljava/lang/Object;)I",                                    (void *) check_jni},
-        {"decode",         "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/String;", (void *) decode},
-        {"encode",         "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/String;", (void *) encode},
+//        {"decode",         "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/String;", (void *) decode},
+//        {"encode",         "(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/String;", (void *) encode},
         {"setPackageName", "(Ljava/lang/String;)J",                                    (void *) set_package},
         {"InitParams",      "(JLjava/lang/String;)J",                                  (void *) init_params},
         {"DestroyParams",   "()J",                                                     (void *) destroy_params},
@@ -346,8 +346,8 @@ static JNINativeMethod method_table[] = {
         {"GetFlashID",        "(I)Ljava/lang/String;",                                 (void *) get_flash_id},
         {"ResetCard",         "(I)Ljava/lang/String;",                                   (void *) reset_card},
         {"ResetController",  "(IJ)J",                                                   (void *) reset_control},
-//        {"TransmitSd",          "(ILjava/lang/String;J)Ljava/lang/String;",               (void *) transmit},
-//        {"TransmitEx",        "(ILjava/lang/String;J)Ljava/lang/String;",            (void *) transmit_ex},
+        {"TransmitSd",          "(ILjava/lang/String;J)Ljava/lang/String;",               (void *) transmit},
+        {"TransmitEx",        "(ILjava/lang/String;J)Ljava/lang/String;",            (void *) transmit_ex},
         {"GetSDKVer",         "()Ljava/lang/String;",                                    (void *) get_sdk_ver},
 //        {"GetSCIOType",      "(I)J",                                                     (void *) get_scio_type},
 };
