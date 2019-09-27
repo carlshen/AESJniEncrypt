@@ -147,7 +147,6 @@ JNIEXPORT jstring JNICALL refresh_dev(JNIEnv *env, jobject instance) {
     unsigned long pulDriveNum = 0;
     unsigned long baseResult = SDSCListDevs(pszDrives, &pulDrivesLen, &pulDriveNum);
     LOGI("RefreshDev result: %ld", baseResult);
-    LOGI("RefreshDev pulDrivesLen: %ld", pulDrivesLen);
     LOGI("RefreshDev pulDriveNum: %ld", pulDriveNum);
     LOGI("RefreshDev pszDrives: %s\n", pszDrives);
     jstring  result = charToJstring(env, pszDrives);
@@ -160,14 +159,19 @@ JNIEXPORT jint JNICALL connect_dev(JNIEnv *env, jobject instance, jstring str_) 
     char *szDrive = (*env)->GetStringUTFChars(env, str_, JNI_FALSE);
     if (szDrive == NULL) {
         LOGE("connect_dev with null string.");
-        return 0;
+        return -1;
     }
     LOGI("connect_dev szDrive: %s\n", szDrive);
     int pulDriveNum = 0;
     unsigned long baseResult = SDSCConnectDev(szDrive, &pulDriveNum);
     LOGI("connect_dev baseResult: %ld", baseResult);
     LOGI("connect_dev pulDriveNum: %d", pulDriveNum);
-    return pulDriveNum;
+    (*env)->ReleaseStringUTFChars(env, str_, szDrive);
+    if (baseResult == 0) {
+        return pulDriveNum;
+    } else {
+        return 0;
+    }
 }
 
 JNIEXPORT jlong JNICALL disconnect_dev(JNIEnv *env, jobject instance, jint handle) {
@@ -246,52 +250,68 @@ JNIEXPORT jlong JNICALL reset_control(JNIEnv *env, jobject instance, jint handle
     return baseResult;
 }
 
-JNIEXPORT jstring JNICALL transmit(JNIEnv *env, jobject instance, jint handle, jstring str_, jlong mode) {
-    unsigned char *pbCommand = (*env)->GetStringUTFChars(env, str_, JNI_FALSE);
+JNIEXPORT jbyteArray JNICALL transmit(JNIEnv *env, jobject instance, jint handle, jbyteArray str_, jlong length, jlong mode) {
+    jbyte* bBuffer = (*env)->GetByteArrayElements(env, str_, 0);
+    unsigned char* pbCommand = (unsigned char*) bBuffer;
     if (pbCommand == NULL) {
         LOGE("transmit with null string.");
-        return (*env)->NewStringUTF(env, '\0');
+        return NULL;
     }
     unsigned char *pbOutData = (char *) malloc(SDSC_MAX_DEV_NAME_LEN * sizeof(char));
     if (pbOutData == NULL) {
         LOGE("transmit with null alloc.");
-        return (*env)->NewStringUTF(env, '\0');
+        return NULL;
     }
     memset(pbOutData, 0x00, SDSC_MAX_DEV_NAME_LEN * sizeof(char));
     unsigned long pulOutDataLen = SDSC_MAX_DEV_NAME_LEN * sizeof(char);
     unsigned long pulCosState = 0;
-    unsigned long ulCommandLen = strlen(pbCommand);
-    LOGI("transmit ulCommandLen: %ld", ulCommandLen);
-    LOGI("transmit pbCommand: %s\n", pbCommand);
-    unsigned long baseResult = SDSCTransmit(handle, pbCommand, ulCommandLen, mode, pbOutData, &pulOutDataLen, &pulCosState);
+    unsigned long ulCommandLen = sizeof(pbCommand)/sizeof(jbyte);
+//    LOGI("transmit ulCommandLen: %ld", ulCommandLen);
+//    LOGI("transmit pbCommand: %s\n", pbCommand);
+    unsigned long baseResult = SDSCTransmit(handle, pbCommand, length, mode, pbOutData, &pulOutDataLen, &pulCosState);
     LOGI("transmit baseResult: %ld", baseResult);
-    LOGI("transmit pulCosState: %ld", pulCosState);
-    LOGI("transmit pbOutData: %s\n", pbOutData);
-    jstring  result = charToJstring(env, pbOutData);
+    if (baseResult != 0) {
+        free(pbOutData);
+        return NULL;
+    }
+//    LOGI("transmit pulCosState: %ld", pulCosState);
+//    LOGI("transmit pbOutData: %s\n", pbOutData);
+    jbyte *by = (jbyte*)pbOutData;
+    jbyteArray jarray = (*env)->NewByteArray(env, pulOutDataLen);
+    (*env)->SetByteArrayRegion(env, jarray, 0, pulOutDataLen, by);
     // need free the memory
     free(pbOutData);
-    return result;
+    return jarray;
 }
 
-JNIEXPORT jstring JNICALL transmit_ex(JNIEnv *env, jobject instance, jint handle, jstring str_, jlong mode) {
-    unsigned char *pbCommand = (*env)->GetStringUTFChars(env, str_, JNI_FALSE);
+JNIEXPORT jbyteArray JNICALL transmit_ex(JNIEnv *env, jobject instance, jint handle, jbyteArray str_, jlong mode) {
+    jbyte* bBuffer = (*env)->GetByteArrayElements(env, str_, 0);
+    unsigned char* pbCommand = (unsigned char*) bBuffer;
     if (pbCommand == NULL) {
         LOGE("transmit_ex with null string.");
-        return (*env)->NewStringUTF(env, '\0');
+        return NULL;
     }
     unsigned char *pbOutData = (char *) malloc(SDSC_MAX_DEV_NAME_LEN * sizeof(char));
     if (pbOutData == NULL) {
         LOGE("transmit_ex with null alloc.");
-        return (*env)->NewStringUTF(env, '\0');
+        return NULL;
     }
     memset(pbOutData, 0x00, SDSC_MAX_DEV_NAME_LEN * sizeof(char));
     unsigned long pulOutDataLen = SDSC_MAX_DEV_NAME_LEN * sizeof(char);
-    unsigned long baseResult = SDSCTransmitEx(handle, pbCommand, strlen(pbCommand), mode, pbOutData, &pulOutDataLen);
+    unsigned long ulCommandLen = sizeof(pbCommand)/sizeof(jbyte);
+//    LOGI("transmit ulCommandLen: %ld", ulCommandLen);
+    unsigned long baseResult = SDSCTransmitEx(handle, pbCommand, ulCommandLen, mode, pbOutData, &pulOutDataLen);
     LOGI("transmit_ex baseResult: %ld", baseResult);
-    jstring  result = charToJstring(env, pbOutData);
+    if (baseResult != 0) {
+        free(pbOutData);
+        return NULL;
+    }
+    jbyte *by = (jbyte*) pbOutData;
+    jbyteArray jarray = (*env)->NewByteArray(env, pulOutDataLen);
+    (*env)->SetByteArrayRegion(env, jarray, 0, pulOutDataLen, by);
     // need free the memory
     free(pbOutData);
-    return result;
+    return jarray;
 }
 
 JNIEXPORT jstring JNICALL get_sdk_ver(JNIEnv *env, jobject instance) {
@@ -305,8 +325,6 @@ JNIEXPORT jstring JNICALL get_sdk_ver(JNIEnv *env, jobject instance) {
     unsigned long baseResult = SDSCGetSDKVersion(pszVersion, &pulVersionLen);
     LOGI("get_sdk_ver pszVersion: %s\n", pszVersion);
     LOGI("get_sdk_ver baseResult: %ld", baseResult);
-    LOGI("get_sdk_ver pulVersionLen: %ld", pulVersionLen);
-    LOGI("get_sdk_ver pszVersion: %s\n", pszVersion);
     jstring  result = charToJstring(env, pszVersion);
     // need free the memory
     free(pszVersion);
@@ -346,8 +364,8 @@ static JNINativeMethod method_table[] = {
         {"GetFlashID",        "(I)Ljava/lang/String;",                                 (void *) get_flash_id},
         {"ResetCard",         "(I)Ljava/lang/String;",                                   (void *) reset_card},
         {"ResetController",  "(IJ)J",                                                   (void *) reset_control},
-        {"TransmitSd",          "(ILjava/lang/String;J)Ljava/lang/String;",               (void *) transmit},
-        {"TransmitEx",        "(ILjava/lang/String;J)Ljava/lang/String;",            (void *) transmit_ex},
+        {"TransmitSd",        "(I[BJJ)[B",                                                    (void *) transmit},
+        {"TransmitEx",        "(I[BJ)[B",                                                 (void *) transmit_ex},
         {"GetSDKVer",         "()Ljava/lang/String;",                                    (void *) get_sdk_ver},
 //        {"GetSCIOType",      "(I)J",                                                     (void *) get_scio_type},
 };
