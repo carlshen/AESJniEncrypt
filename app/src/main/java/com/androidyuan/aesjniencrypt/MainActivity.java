@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button devExit;
     File[] appsDir;
     EditText editCommand;
+    EditText editRun;
     Button runCommand;
     AppCompatSpinner devSpinner;
     ArrayAdapter<String> adapter;
@@ -54,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         devTest = (Button) findViewById(R.id.device_test);
         devExit = (Button) findViewById(R.id.device_exit);
         editCommand = (EditText) findViewById(R.id.edit_command);
+        editRun = (EditText) findViewById(R.id.edit_run);
         runCommand = (Button) findViewById(R.id.device_command);
         runCommand.setOnClickListener(this);
         devRefresh.setOnClickListener(this);
@@ -132,7 +134,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         devSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-//                Toast.makeText(MainActivity.this, "点击了" + arrDevices[position], Toast.LENGTH_SHORT).show();
                 if (position > 0) {
                     handle = AESEncrypt.ConnectDev(arrDevices[position]);
                     deviceLog.setText(deviceLog.getText() + "connect return " + handle + "\n");
@@ -148,13 +149,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     int handle = -1;
     String dev = null;
-    int total = 0;
     @Override
     public void onClick(View view) {
-
         switch (view.getId()) {
             case R.id.device_refresh:
-//                toast("device_refresh");
                 dev = AESEncrypt.RefreshDev();
                 deviceLog.setText(deviceLog.getText() + "Refresh return " + dev + "\n");
                 Log.i(TAG, "-----------RefreshDev dev: " + dev);
@@ -172,7 +170,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 handle = AESEncrypt.ConnectDev(arrDevices[1]);
                 deviceLog.setText(deviceLog.getText() + "connect return " + handle + "\n");
                 Log.i(TAG, "-----------ConnectDev result: " + handle);
-//                toast("ConnectDev result = " + result);
                 break;
             case R.id.device_command:
                 String commands = editCommand.getText().toString().trim();
@@ -183,7 +180,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 testCommand(commands);
                 break;
             case R.id.device_exit:
-//                toast("device_exit");
                 deviceLog.setText("");
                 long discon = AESEncrypt.DisconnectDev(handle);
                 deviceLog.setText(deviceLog.getText() + "Disconnect return " + discon + "\n");
@@ -198,143 +194,191 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return;
         }
         Log.i(TAG, "-----------TransmitSd Command: " + commands);
+        String runRound = editRun.getText().toString().trim();
+        int round = 1;
+        try {
+            round = Integer.parseInt(runRound);
+        } catch (Exception arg4) {
+            arg4.printStackTrace();
+        }
+        Log.i(TAG, "-----------TransmitSd run round: " + round);
+        if (commands.contains("~")) {
+            if (round > 1) {
+                for (int i = 0; i < round; i++) {
+                    testBatchCommand(commands);
+                }
+            } else {
+                testBatchCommand(commands);
+            }
+        } else {
+            testOneCommand(commands);
+        }
+    }
+
+    private void testBatchCommand(String commands) {
+        if (TextUtils.isEmpty(commands)) {
+            toast("Please enter command first.");
+            return;
+        }
+        Log.i(TAG, "-----------TransmitSd Command: " + commands);
         if (handle < 0) {
             toast("Please check connection first.");
             return;
         }
-        if (commands.contains("~")) {
-            String[] command = commands.split("~");
-            if (command == null || command.length < 2) {
-                toast("Please check command list format: xxx~xxx");
-                return;
+        if (!commands.contains("~")) {
+            toast("Please check batch command list format: xxx~xxx");
+            return;
+        }
+        String[] command = commands.split("~");
+        if (command == null || command.length < 2) {
+            toast("Please check command list format: xxx~xxx");
+            return;
+        }
+        if (command[0] == null || (command[0].length() < 1) || (command[0].length() > 2)) {
+            toast("Please check command list format: 1~255");
+            return;
+        }
+        if (command[1] == null || (command[1].length() < 1) || (command[1].length() > 2)) {
+            toast("Please check command list format: 1~255");
+            return;
+        }
+        try {
+            int begin = 0;
+            int end   = 0;
+            if (command[0].length() == 1){
+                begin = Character.digit(command[0].charAt(0), 16);
+            } else {
+                begin = Character.digit(command[0].charAt(0), 16) * 16 + Character.digit(command[0].charAt(1), 16);
             }
-            try {
-                if (command[0] == null || (command[0].length() < 1) || (command[0].length() > 2)) {
-                    toast("Please check command list format: 1~255");
-                    return;
-                }
-                if (command[1] == null || (command[1].length() < 1) || (command[1].length() > 2)) {
-                    toast("Please check command list format: 1~255");
-                    return;
-                }
-                int begin = 0;
-                int end   = 0;
-                if (command[0].length() == 1){
-                    begin = Character.digit(command[0].charAt(0), 16);
-                } else {
-                    begin = Character.digit(command[0].charAt(0), 16) * 16 + Character.digit(command[0].charAt(1), 16);
-                }
-                if (command[1].length() == 1){
-                    end   = Character.digit(command[1].charAt(0), 16);
-                } else {
-                    end   = Character.digit(command[1].charAt(0), 16) * 16 + Character.digit(command[1].charAt(1), 16);
-                }
-                if (begin > end) {
-                    int temp = begin;
-                    begin = end;
-                    end = temp;
-                }
-                total = 0;
-                Log.i(TAG, "-----------TransmitSd begin: " + begin);
-                Log.i(TAG, "-----------TransmitSd end: " + end);
-                byte[] value;// = new byte[end - begin + 1];
-                byte[] checker;// = new byte[end - begin + 1];
-                byte high;
-                byte low;
-                String hexString;
-                int position = 0;
-                for (int start = begin; start <= end; start++) {
-                    value = new byte[start - begin + 1];
-                    checker = new byte[start - begin + 1];
-                    position = 0;
-                    for (int index = begin; index <= start; index++) {
+            if (command[1].length() == 1){
+                end   = Character.digit(command[1].charAt(0), 16);
+            } else {
+                end   = Character.digit(command[1].charAt(0), 16) * 16 + Character.digit(command[1].charAt(1), 16);
+            }
+            if (begin > end) {
+                int temp = begin;
+                begin = end;
+                end = temp;
+            }
+            int total = 0;
+            Log.i(TAG, "-----------TransmitSd begin: " + begin);
+            Log.i(TAG, "-----------TransmitSd end: " + end);
+            byte[] value;// = new byte[end - begin + 1];
+            byte[] checker;// = new byte[end - begin + 1];
+            byte high;
+            byte low;
+            String hexString;
+            int position = 0;
+            for (int start = begin; start <= end; start++) {
+                value = new byte[start - begin + 1];
+                checker = new byte[start - begin + 1];
+                position = 0;
+                for (int index = begin; index <= start; index++) {
 //                        Log.i(TAG, "-----------TransmitSd index: " + index);
 //                        Log.i(TAG, "-----------TransmitSd position: " + position);
-                        hexString = Integer.toHexString(index);
+                    hexString = Integer.toHexString(index);
 //                        Log.i(TAG, "-----------TransmitSd hexString: " + hexString);
-                        if (TextUtils.isEmpty(hexString)) {
-                            value[position] = (byte) (0);
-                        } else if (hexString.length() == 1) {
-                            value[position] = (byte) (Character.digit(hexString.charAt(0), 16) & 0xff);
-                        } else {
-                            high = (byte) (Character.digit(hexString.charAt(0), 16) & 0xff);
-                            low = (byte) (Character.digit(hexString.charAt(1), 16) & 0xff);
-                            value[position] = (byte) (high << 4 | low);
-                        }
-                        hexString = Integer.toHexString(255 - index);
-                        Log.i(TAG, "-----------TransmitSd hexString: " + hexString);
-                        if (TextUtils.isEmpty(hexString)) {
-                            checker[position] = (byte) (0);
-                        } else if (hexString.length() == 1) {
-                            checker[position] = (byte) (Character.digit(hexString.charAt(0), 16) & 0xff);
-                        } else {
-                            high = (byte) (Character.digit(hexString.charAt(0), 16) & 0xff);
-                            low = (byte) (Character.digit(hexString.charAt(1), 16) & 0xff);
-                            checker[position] = (byte) (high << 4 | low);
-                        }
+                    if (TextUtils.isEmpty(hexString)) {
+                        value[position] = (byte) (0);
+                    } else if (hexString.length() == 1) {
+                        value[position] = (byte) (Character.digit(hexString.charAt(0), 16) & 0xff);
+                    } else {
+                        high = (byte) (Character.digit(hexString.charAt(0), 16) & 0xff);
+                        low = (byte) (Character.digit(hexString.charAt(1), 16) & 0xff);
+                        value[position] = (byte) (high << 4 | low);
+                    }
+                    hexString = Integer.toHexString(255 - index);
+//                        Log.i(TAG, "-----------TransmitSd hexString: " + hexString);
+                    if (TextUtils.isEmpty(hexString)) {
+                        checker[position] = (byte) (0);
+                    } else if (hexString.length() == 1) {
+                        checker[position] = (byte) (Character.digit(hexString.charAt(0), 16) & 0xff);
+                    } else {
+                        high = (byte) (Character.digit(hexString.charAt(0), 16) & 0xff);
+                        low = (byte) (Character.digit(hexString.charAt(1), 16) & 0xff);
+                        checker[position] = (byte) (high << 4 | low);
+                    }
 //                        Log.i(TAG, "-----------TransmitSd value[position]: " + String.format("%02X", value[position]));
 //                        Log.i(TAG, "-----------TransmitSd checker[position]: " + String.format("%02X", checker[position]));
-                        position++;
-                    }
-                    Log.i(TAG, "-----------TransmitSd value: " + toHexString(value));
-                    Log.i(TAG, "-----------TransmitSd checker: " + toHexString(checker));
-                    long transaction = AESEncrypt.BeginTransaction(handle);
-//                    deviceLog.setText(deviceLog.getText() + "transaction return " + transaction + "\n");
-                    byte[] res = AESEncrypt.TransmitSd(handle, value, value.length, 0);
-                    String result;
-                    if (res == null || res.length < 1) {
-                        result = "fail";
-                    } else {
-                        if (Arrays.equals(checker, res)) {
-                            result = "pass";
-                            total++;
-                        } else {
-                            result = "fail";
-
-                        }
-                    }
-                    Log.i(TAG, "-----------TransmitSd result: " + result);
-                    if (!"pass".equalsIgnoreCase(result)) {
-                        transaction = AESEncrypt.EndTransaction(handle);
-                        deviceLog.setText(deviceLog.getText() + "EndTransaction return " + transaction + "\n");
-                        deviceLog.setText(deviceLog.getText() + "Transmit command total: " + (end-begin+1) + ", pass " + total +"\n");
-                        return;
-                    }
-//                    deviceLog.setText(deviceLog.getText() + "Transmit command result " + result +"\n");
-                    transaction = AESEncrypt.EndTransaction(handle);
-//                    deviceLog.setText(deviceLog.getText() + "EndTransaction return " + transaction + "\n");
+                    position++;
                 }
-                deviceLog.setText(deviceLog.getText() + "Transmit command total: " + (end-begin+1) + ", pass " + total +"\n");
-            } catch (Exception arg2) {
-                arg2.printStackTrace();
-                deviceLog.setText(deviceLog.getText() + arg2.getMessage() + "\n");
-            }
-        } else {
-            try {
+                Log.i(TAG, "-----------TransmitSd value: " + toHexString(value));
+                Log.i(TAG, "-----------TransmitSd checker: " + toHexString(checker));
                 long transaction = AESEncrypt.BeginTransaction(handle);
-                deviceLog.setText(deviceLog.getText() + "transaction return " + transaction + "\n");
-                byte[] command = toByteArray(commands);
-                Log.i(TAG, "--------------------TransmitSd command.length: " + commands.length());
-                Log.i(TAG, "---------------------TransmitSd command.length: " + command.length);
-                for (int i = 0; i < command.length; i++) {
-                    Log.i(TAG, "-----------TransmitSd command: " + command[i]);
+                if (transaction != 0) {
+                    deviceLog.setText(deviceLog.getText() + "BeginTransaction return " + transaction + "\n");
                 }
-                beginTime = System.currentTimeMillis();
-                byte[] res = AESEncrypt.TransmitSd(handle, command, command.length, 0);
+                byte[] res = AESEncrypt.TransmitSd(handle, value, value.length, 0);
+                Log.i(TAG, "-----------TransmitSd result: " + toHexString(res));
+                String result;
                 if (res == null || res.length < 1) {
-                    deviceLog.setText(deviceLog.getText() + "Transmit return failed, command time " + (System.currentTimeMillis() - beginTime) + " ms\n");
-                    Log.i(TAG, "-----------TransmitSd result failed. ");
+                    result = "fail";
                 } else {
-                    String result = toHexString(res);
-                    deviceLog.setText(deviceLog.getText() + "Transmit return " + result + ", command time " + (System.currentTimeMillis() - beginTime) + " ms\n");
-                    Log.i(TAG, "-----------TransmitSd result: " + result);
+                    if (Arrays.equals(checker, res)) {
+                        result = "pass";
+                        total++;
+                    } else {
+                        result = "fail";
+                    }
                 }
+                Log.i(TAG, "-----------TransmitSd result: " + result);
+                if (!"pass".equalsIgnoreCase(result)) {
+                    transaction = AESEncrypt.EndTransaction(handle);
+                    deviceLog.setText(deviceLog.getText() + "EndTransaction return " + transaction + "\n");
+                    deviceLog.setText(deviceLog.getText() + "Transmit command total: " + (end-begin+1) + ", pass " + total +"\n");
+                    return;
+                }
+//                    deviceLog.setText(deviceLog.getText() + "Transmit command result " + result +"\n");
                 transaction = AESEncrypt.EndTransaction(handle);
-                deviceLog.setText(deviceLog.getText() + "EndTransaction return " + transaction + "\n");
-            } catch (Exception arg3) {
-                arg3.printStackTrace();
-                deviceLog.setText(deviceLog.getText() + arg3.getMessage() + "\n");
+                if (transaction != 0) {
+                    deviceLog.setText(deviceLog.getText() + "EndTransaction return " + transaction + "\n");
+                }
             }
+            deviceLog.setText(deviceLog.getText() + "Transmit command total: " + (end-begin+1) + ", pass " + total +"\n");
+        } catch (Exception arg2) {
+            arg2.printStackTrace();
+            deviceLog.setText(deviceLog.getText() + arg2.getMessage() + "\n");
+        }
+    }
+
+    private void testOneCommand(String commands) {
+        if (TextUtils.isEmpty(commands)) {
+            toast("Please enter command first.");
+            return;
+        }
+        Log.i(TAG, "-----------TransmitSd Command: " + commands);
+        if (commands.contains("~")) {
+            toast("Please check command format: xxxxxx");
+            return;
+        }
+        if (handle < 0) {
+            toast("Please check connection first.");
+            return;
+        }
+        try {
+            long transaction = AESEncrypt.BeginTransaction(handle);
+            deviceLog.setText(deviceLog.getText() + "BeginTransaction return " + transaction + "\n");
+            byte[] command = toByteArray(commands);
+//                Log.i(TAG, "--------------------TransmitSd command.length: " + commands.length());
+//                Log.i(TAG, "---------------------TransmitSd command.length: " + command.length);
+//                for (int i = 0; i < command.length; i++) {
+//                    Log.i(TAG, "-----------TransmitSd command: " + command[i]);
+//                }
+            beginTime = System.currentTimeMillis();
+            byte[] res = AESEncrypt.TransmitSd(handle, command, command.length, 0);
+            if (res == null || res.length < 1) {
+                deviceLog.setText(deviceLog.getText() + "Transmit return failed, command time " + (System.currentTimeMillis() - beginTime) + " ms\n");
+                Log.i(TAG, "-----------TransmitSd result failed. ");
+            } else {
+                String result = toHexString(res);
+                deviceLog.setText(deviceLog.getText() + "Transmit return " + result + ", command time " + (System.currentTimeMillis() - beginTime) + " ms\n");
+                Log.i(TAG, "-----------TransmitSd result: " + result);
+            }
+            transaction = AESEncrypt.EndTransaction(handle);
+            deviceLog.setText(deviceLog.getText() + "EndTransaction return " + transaction + "\n");
+        } catch (Exception arg3) {
+            arg3.printStackTrace();
+            deviceLog.setText(deviceLog.getText() + arg3.getMessage() + "\n");
         }
     }
 

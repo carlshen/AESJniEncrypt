@@ -265,8 +265,6 @@ JNIEXPORT jbyteArray JNICALL transmit(JNIEnv *env, jobject instance, jint handle
     memset(pbOutData, 0x00, SDSC_MAX_DEV_NAME_LEN * sizeof(char));
     unsigned long pulOutDataLen = SDSC_MAX_DEV_NAME_LEN * sizeof(char);
     unsigned long pulCosState = 0;
-    unsigned long ulCommandLen = sizeof(pbCommand)/sizeof(jbyte);
-//    LOGI("transmit ulCommandLen: %ld", ulCommandLen);
 //    LOGI("transmit pbCommand: %s\n", pbCommand);
     unsigned long baseResult = SDSCTransmit(handle, pbCommand, length, mode, pbOutData, &pulOutDataLen, &pulCosState);
     LOGI("transmit baseResult: %ld", baseResult);
@@ -298,8 +296,8 @@ JNIEXPORT jbyteArray JNICALL transmit_ex(JNIEnv *env, jobject instance, jint han
     }
     memset(pbOutData, 0x00, SDSC_MAX_DEV_NAME_LEN * sizeof(char));
     unsigned long pulOutDataLen = SDSC_MAX_DEV_NAME_LEN * sizeof(char);
-    unsigned long ulCommandLen = sizeof(pbCommand)/sizeof(jbyte);
-//    LOGI("transmit ulCommandLen: %ld", ulCommandLen);
+    unsigned long ulCommandLen = (*env)->GetArrayLength(env, str_);
+    LOGI("transmit ulCommandLen: %ld", ulCommandLen);
     unsigned long baseResult = SDSCTransmitEx(handle, pbCommand, ulCommandLen, mode, pbOutData, &pulOutDataLen);
     LOGI("transmit_ex baseResult: %ld", baseResult);
     if (baseResult != 0) {
